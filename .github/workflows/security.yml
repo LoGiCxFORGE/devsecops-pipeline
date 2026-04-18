@@ -1,0 +1,52 @@
+name: DevSecOps Pipeline
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    paths:
+      - "app/**"
+      - "pyproject.toml"
+      - "uv.lock"
+
+jobs:
+  security-scan:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    # Linting
+    - name: Install uv
+      uses: astral-sh/setup-uv@v1
+
+    - name: Install dependencies
+      run: uv sync
+
+    - name: Run Ruff
+      run: uv run ruff check .
+
+    # SAST (Bandit)
+    - name: Run Bandit
+      run: uv run bandit -r app
+
+    # SCA (dependency scan)
+    - name: Run safety
+      run: uv run safety check
+
+    # 🔑 Secret scanning
+    - name: Run Gitleaks
+      uses: gitleaks/gitleaks-action@v2
+
+    # 🐳 Build Docker image
+    - name: Build Docker image
+      run: docker build -t devsecops-test .
+
+    # 🛡️ Image scan
+    - name: Run Trivy
+      uses: aquasecurity/trivy-action@0.20.0
+      with:
+        image-ref: devsecops-test
+        severity: HIGH,CRITICAL
+        exit-code: 1
