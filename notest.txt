@@ -1,0 +1,140 @@
+DevSecOps Notes (Docker + Compose + DB Init)
+🧠 1. COPY ./app ./app — why the .?
+
+Q: Why ./app? What does . mean?
+
+A:
+
+Left side = host path
+Right side = container path
+. = current directory (project root)
+WORKDIR /app
+COPY ./app ./app
+
+👉 Result inside container:
+
+/app/app/*
+✅ Better pattern
+COPY ./app .
+
+👉 Result:
+
+/app/*
+🧠 2. Why copy uv into runtime?
+
+Q: Why do we copy uv again?
+
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
+
+A:
+
+Each Docker stage is isolated
+Builder tools are NOT available in runtime
+If runtime uses uv, you must copy it
+✅ Alternative (cleaner)
+
+Don’t use uv in runtime:
+
+CMD ["uvicorn", "app.main:app", ...]
+
+👉 Then no need to copy uv
+
+🧠 3. Why EXPOSE 8000?
+
+Q: Isn’t port already in CMD?
+
+A:
+
+EXPOSE = metadata only
+Does NOT open ports
+What actually exposes it:
+ports:
+  - "8000:8000"
+✅ Recommendation:
+Optional but good for documentation
+🧠 4. Does /app/app happen?
+
+Q: If WORKDIR=/app and COPY ./app ./app?
+
+A:
+👉 YES
+
+Result:
+
+/app/app/*
+✅ Cleaner:
+COPY ./app .
+🧠 5. Docker Compose — build vs image
+
+Q: If I run docker build -t devsecops-test ., will compose use it?
+
+A:
+❌ No — not unless you tell it to
+
+Two modes:
+1. Compose builds image
+build: .
+2. Compose uses existing image
+image: devsecops-test
+🧠 6. Volume mapping for Postgres init
+./db/init.sql:/docker-entrypoint-initdb.d/init.sql
+
+Q: Why this specific path?
+
+A:
+
+Hardcoded behavior in Postgres image
+It auto-runs scripts from:
+/docker-entrypoint-initdb.d/
+❌ If you change path:
+./db/init.sql:/random/init.sql
+
+👉 It will NOT run
+
+🧠 7. Does changing init.sql update DB automatically?
+
+Q: If I edit init.sql, will DB update?
+
+A:
+❌ No
+
+Why:
+Scripts run ONLY on first DB initialization
+To apply changes:
+Reset DB:
+docker compose down -v
+docker compose up
+Or manually run SQL:
+docker exec -it <db> psql -U user -d appdb
+🧠 8. Why rebuild is not needed for SQL changes?
+
+Q: Do I need to rebuild image?
+
+A:
+❌ No
+
+Because:
+
+SQL file is mounted (volume), not baked into image
+🧠 9. Why DB doesn’t change after restart?
+
+A:
+Because Docker uses volumes (persistent storage)
+
+👉 DB lives outside container lifecycle
+
+🧠 Core Mental Models (Important)
+🔑 1. Host vs Container
+Left of COPY → host
+Right of COPY → container
+🔑 2. Docker stages are isolated
+Builder ≠ Runtime
+Nothing carries over unless copied
+🔑 3. Containers are stateless, volumes are stateful
+Container dies → data stays
+Volume holds DB
+🔑 4. init.sql is bootstrap only
+Runs once
+Not for ongoing updates
+🔑 5. EXPOSE is documentation, not networking
+Ports work via ports: in compose
