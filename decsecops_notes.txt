@@ -1,0 +1,203 @@
+Pre-commit (Local Security Layer)
+What is pre-commit?
+
+pre-commit
+
+👉 A tool that runs checks before git commit
+
+Why use it?
+catches issues early (before pushing)
+prevents bad code entering repo
+faster feedback than CI
+Flow
+Write code → git commit → pre-commit runs → allow/block commit
+When to use pre-commit run --all-files?
+
+Use only when:
+
+first setup
+debugging
+after changing config
+
+👉 NOT needed for daily commits
+
+Normal workflow
+git add .
+git commit -m "message"
+
+👉 Hooks run automatically
+
+Bypass (for testing vulnerabilities)
+git commit --no-verify
+
+👉 skips hooks
+
+2️⃣ Linter vs Formatter
+Linter (Ruff-check)
+
+Ruff
+
+👉 checks code quality and logic
+
+Finds:
+unused imports
+bad patterns
+potential bugs
+Formatter (Ruff-format)
+
+👉 fixes code style automatically
+
+Fixes:
+spacing
+indentation
+formatting
+Difference
+Tool	Purpose
+Linter	detect problems
+Formatter	fix appearance
+Why --fix?
+args: [--fix]
+
+👉 automatically fixes issues instead of just reporting
+
+3️⃣ Bandit & SAST
+What is Bandit?
+
+Bandit
+
+👉 scans Python code for security issues
+
+What is SAST?
+
+👉 Static Application Security Testing
+
+Meaning:
+scans code without running it
+detects vulnerabilities early
+Example (your app)
+query = f"SELECT * FROM users WHERE username = '{username}'"
+
+👉 Bandit detects:
+
+SQL Injection (CWE-89)
+Key insight
+SAST is pattern-based
+not always 100% accurate
+4️⃣ Gitleaks & Secret Scanning
+What is Gitleaks?
+
+Gitleaks
+
+👉 detects secrets in code
+
+What it finds
+API keys
+tokens
+passwords
+Why your first key didn’t trigger
+# API_KEY = "sk_test_123456789"
+
+👉 reasons:
+
+commented
+not matching strong pattern
+Working example
+API_KEY = "ghp_1234567890abcdefghijklmnopqrstuvwxyz"
+
+👉 detected successfully
+
+Key insight
+secret scanners use patterns + entropy
+not all strings are flagged
+5️⃣ Pre-commit Behavior (Important)
+When hooks modify files
+files were modified by this hook
+
+👉 means:
+
+tool fixed something
+commit is stopped
+What to do
+git add .
+git commit -m "fixed"
+6️⃣ Bandit JSON Fix (Windows Issue)
+Problem
+UnicodeEncodeError (emoji issue)
+Fix
+args: ["-f", "json"]
+Why it works
+removes emoji output
+avoids encoding crash
+7️⃣ Your Current Dev Workflow
+Write code
+↓
+git commit
+   → pre-commit runs
+   → may block or fix
+↓
+git push
+↓
+GitHub Actions pipeline runs
+8️⃣ Why we bypass pre-commit in this project
+Normal case
+
+👉 fix issues before commit
+
+Your project
+
+👉 intentionally vulnerable system
+
+So we do:
+git commit --no-verify
+Why?
+
+To:
+
+simulate insecure developer
+test pipeline detection
+9️⃣ Pipeline vs Pre-commit
+Layer	Purpose
+Pre-commit	local enforcement
+CI/CD pipeline	global enforcement
+Key idea
+
+👉 “Shift security left”
+
+pre-commit = early detection
+pipeline = final gate
+🔟 What you have built so far
+
+You now have:
+
+Local layer
+Ruff (lint + format)
+Bandit (SAST)
+Gitleaks (secrets)
+Pipeline layer
+SAST
+SCA
+Container scanning
+System behavior
+insecure code detected locally
+insecure code detected in CI
+commit & merge can be controlled
+🧠 Key Concepts (Interview Gold)
+1. SAST
+
+👉 scan code without execution
+
+2. Secret Scanning
+
+👉 detect exposed credentials
+
+3. Shift Left Security
+
+👉 detect issues early (pre-commit)
+
+4. Defense in Depth
+
+👉 multiple layers:
+
+local
+CI
+runtime

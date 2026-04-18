@@ -4,7 +4,7 @@ from app.db import get_db_connection
 app = FastAPI()
 
 # 🔥 Intentional secret leak (Secret scanner should catch this)
-API_KEY = "sk_test_123456789"
+API_KEY = "ghp_1234567890abcdefghijklmnopqrstuvwxyz"
 
 
 @app.get("/")
