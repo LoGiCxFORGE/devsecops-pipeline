@@ -1,0 +1,13 @@
+need
+A mature pipeline is:
+
+“I enforce security policy with staged gates and actionable outputs”
+currently
+everything runs in one blob
+no separation of concerns
+no artifacts
+no reporting strategy
+no policy design
+
+
+we need to run pipeline say for app changes only when app changes are pushed and if dockerfile or compose changes then only that changes in the pipeline should run

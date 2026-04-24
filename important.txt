@@ -1,0 +1,169 @@
+- name: Checkout code
+  uses: actions/checkout@v4
+
+comes from GitHub Marketplace.
+
+
+What “GitHub Marketplace” actually is
+
+Think of it like an app store, but for CI/CD building blocks.
+
+Instead of writing everything from scratch, you grab ready-made “actions” that do specific jobs:
+
+clone your repo
+run tests
+scan for vulnerabilities
+deploy apps
+etc.
+🔧 What uses: means (this is key)
+
+In GitHub Actions, you have two ways to run stuff:
+
+1. Run commands manually
+run: uv sync
+
+👉 You write the logic yourself.
+
+2. Use prebuilt actions
+uses: actions/checkout@v4
+
+👉 You’re saying:
+
+“Hey GitHub, go grab this reusable action and run it for me.”
+
+📦 What is actions/checkout@v4 specifically?
+
+This is an official action from GitHub.
+
+It does one simple but critical thing:
+
+👉 Clones your repository into the runner machine
+
+Without it, your pipeline has no code to work on.
+
+🤔 Why do you need Marketplace at all?
+
+Because otherwise you'd be stuck doing everything manually like this:
+
+run: |
+  git clone https://github.com/your-repo.git
+  cd your-repo
+
+Now imagine doing that for:
+
+Docker login
+Kubernetes deploy
+security scanning
+caching dependencies
+
+You’d go insane pretty fast.
+
+Marketplace saves you from reinventing the wheel every time.
+
+
+
+so then why uv run ruff check . run: uv run bandit -r app do we not have prebuilt for THEM??
+
+
+hort answer
+
+Yes, there are prebuilt actions for tools like Ruff and Bandit…
+but using uv run ... is often intentional and better.
+
+⚖️ Two ways to run tools in GitHub Actions
+✅ Your current way (what you did)
+uv run ruff check .
+uv run bandit -r app
+
+👉 You install dependencies → run tools directly
+
+📦 Alternative (Marketplace actions)
+
+Example:
+
+uses: chartboost/ruff-action@v1
+uses: py-actions/bandit@v1
+
+👉 Prepackaged wrappers around those tools
+
+🤔 So why NOT use Marketplace for everything?
+1. 🔒 Control & consistency (this is the big one)
+
+With your approach:
+
+uv sync
+uv run ruff
+
+👉 You’re using exact versions from your project
+
+That means:
+
+same version locally ✅
+same version in CI ✅
+no surprises ✅
+
+With Marketplace actions:
+
+they might install their own version
+version may change under you
+results may differ from your local machine
+
+👉 That’s how bugs sneak in and ruin your day.
+
+2. ⚡ Less abstraction = easier debugging
+
+If this fails:
+
+uv run bandit -r app
+
+👉 You instantly know what’s wrong.
+
+If this fails:
+
+uses: some-random/bandit-action
+
+👉 Now you're debugging:
+
+their Dockerfile
+their scripts
+their assumptions
+
+That’s a rabbit hole you don’t want.
+
+3. 🧩 You already have a dependency manager (uv)
+
+You’re already doing:
+
+uv sync
+
+So your tools (ruff, bandit, safety) are already installed.
+
+Using Marketplace actions here would be:
+👉 redundant at best
+👉 inconsistent at worst
+
+4. 🚀 Speed
+
+Running tools directly is often faster than:
+
+pulling an action
+spinning up its environment
+installing dependencies again
+🔥 When SHOULD you use Marketplace actions?
+
+Use them when:
+
+setup is complex (e.g. Docker login, cloud deploy)
+tool isn’t part of your project dependencies
+you want quick plug-and-play
+
+That’s why this makes sense:
+
+uses: aquasecurity/trivy-action@0.20.0
+uses: gitleaks/gitleaks-action@v2
+
+👉 These are external tools, not part of your Python env.
+
+🧠 The real principle (this is gold)
+App-level tools (lint, tests, SAST) → run them yourself (uv run)
+Infra / external tools → use Marketplace actions

@@ -25,7 +25,7 @@ COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 # Copy installed environment + app
 COPY --from=builder /app /app
 
-USER nonroot
+USER root
 
 EXPOSE 8000
 

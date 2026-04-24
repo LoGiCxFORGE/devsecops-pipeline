@@ -3,6 +3,11 @@ name: DevSecOps Pipeline
 on:
   push:
     branches: [ "main" ]
+    paths:
+      - "app/**"
+      - "pyproject.toml"
+      - "uv.lock"
+      
   pull_request:
     paths:
       - "app/**"
