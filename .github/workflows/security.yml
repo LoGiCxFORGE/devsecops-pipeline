@@ -82,7 +82,7 @@ jobs:
         run: uv sync --dev
 
       - name: Run Safety
-        run: uv run safety check
+        run: uv run python -m safety check
 
   # Build if code changed (after checks pass)
   build-code:
