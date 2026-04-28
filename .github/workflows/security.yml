@@ -62,7 +62,7 @@ jobs:
         uses: pre-commit/action@v3.0.1
 
       - name: Install dependencies
-        run: uv sync
+        run: uv sync --dev
 
 
   # Dependency scanning (SCA) checks dependencies/packages for known vulnerabilities
@@ -79,7 +79,7 @@ jobs:
         uses: astral-sh/setup-uv@v1
 
       - name: Install dependencies
-        run: uv sync
+        run: uv sync --dev
 
       - name: Run Safety
         run: uv run safety check
