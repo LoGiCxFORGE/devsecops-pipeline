@@ -83,7 +83,7 @@ jobs:
         run: uv sync --dev
 
       - name: Run Safety
-        run: uvx safety check
+        run: uvx --from safety safety check
 
   # Build if code changed (after checks pass)
   build-and-push: # [CONSOLIDATED] Combined build logic for efficiency
