@@ -1,57 +1,165 @@
-name: DevSecOps Pipeline
+name: Intelligent DevSecOps Pipeline
 
 on:
   push:
-    branches: [ "main" ]
+    branches: ["main"]
     paths:
       - "app/**"
+      - "Dockerfile"
+      - "docker-compose.yml"
       - "pyproject.toml"
       - "uv.lock"
 
   pull_request:
     paths:
       - "app/**"
+      - "Dockerfile"
+      - "docker-compose.yml"
       - "pyproject.toml"
       - "uv.lock"
 
 jobs:
-  security-scan:
+
+  # Detect what changed
+  detect-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      code: ${{ steps.filter.outputs.code }}
+      docker: ${{ steps.filter.outputs.docker }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            code:
+              - 'app/**'
+              - 'pyproject.toml'
+              - 'uv.lock'
+            docker:
+              - 'Dockerfile'
+              - 'docker-compose.yml'
+
+  # Pre-commit (lint + SAST + secrets)
+  precommit:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.code == 'true'
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-    # Linting
-    - name: Install uv
-      uses: astral-sh/setup-uv@v1
+      - name: Setup uv
+        uses: astral-sh/setup-uv@v1
 
-    - name: Install dependencies
-      run: uv sync
+      - name: Install dependencies
+        run: uv sync
 
-    - name: Run Ruff
-      run: uv run ruff check .
+      - name: Run pre-commit hooks
+        uses: pre-commit/action@v3.0.1
 
-    # SAST (Bandit)
-    - name: Run Bandit
-      run: uv run bandit -r app
+  # Dependency scanning (SCA) checks dependencies/packages for known vulnerabilities
+  sca:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.code == 'true'
+    runs-on: ubuntu-latest
 
-    # SCA (dependency scan)
-    - name: Run safety
-      run: uv run safety check
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-    # 🔑 Secret scanning
-    - name: Run Gitleaks
-      uses: gitleaks/gitleaks-action@v2
+      - name: Setup uv
+        uses: astral-sh/setup-uv@v1
 
-    # 🐳 Build Docker image
-    - name: Build Docker image
-      run: docker build -t devsecops-test .
+      - name: Install dependencies
+        run: uv sync
 
-    # 🛡️ Image scan
-    - name: Run Trivy
-      uses: aquasecurity/trivy-action@0.20.0
-      with:
-        image-ref: devsecops-test
-        severity: HIGH,CRITICAL
-        exit-code: 1
+      - name: Run Safety
+        run: uv run safety check
+
+  # Build if code changed (after checks pass)
+  build-code:
+    name: Build Image (Code Changes)
+    needs: [detect-changes, precommit, sca]
+    if: |
+      needs.detect-changes.outputs.code == 'true' &&
+      needs.precommit.result == 'success' &&
+      needs.sca.result == 'success'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Build Docker image
+        run: docker build -t devsecops-test .
+
+  # Build if only Docker changed
+  build-docker:
+    name: Build Image (Docker Changes Only)
+    needs: detect-changes
+    if: |
+      needs.detect-changes.outputs.docker == 'true' &&
+      needs.detect-changes.outputs.code == 'false'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Build Docker image
+        run: docker build -t devsecops-test .
+
+  # Container image scanning
+  container-scan:
+    name: Container Security Scan
+    needs: [build-code, build-docker]
+    if: |
+      always() &&
+      (
+        needs.build-code.result == 'success' ||
+        needs.build-docker.result == 'success'
+      )
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Scan image with Trivy
+        uses: aquasecurity/trivy-action@0.20.0
+        with:
+          image-ref: devsecops-test
+          severity: HIGH,CRITICAL
+          exit-code: 1
+
+
+  # Dynamic security testing (runtime attack simulation)
+  dast:
+    name: Dynamic Application Security Testing
+    needs: [build-code, build-docker]
+    if: |
+      always() &&
+      (
+        needs.build-code.result == 'success' ||
+        needs.build-docker.result == 'success'
+      )
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Build Docker image
+        run: docker build -t devsecops-test .
+
+      - name: Run application container
+        run: |
+          docker run -d -p 8000:8000 --name app devsecops-test
+          sleep 15
+
+      - name: Run OWASP ZAP baseline scan
+        uses: zaproxy/action-baseline@v0.10.0
+        with:
+          target: "http://localhost:8000"
+          fail_action: true
