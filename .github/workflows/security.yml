@@ -101,7 +101,7 @@ jobs:
 
       - name: Set up Docker Buildx # [OPTIMIZED] Better caching for Docker layers
         uses: docker/setup-buildx-action@v3
-      
+
       - name: Build Docker image
         run: docker build -t devsecops-test .
 
