@@ -120,7 +120,7 @@ jobs:
   # Container image scanning
   container-scan:
     name: Container Security Scan
-    needs: build-and-push
+    needs: [build-and-push]
     runs-on: ubuntu-latest
     steps:
       - name: Scan image with Trivy
@@ -135,7 +135,7 @@ jobs:
   # [OPTIMIZED] No rebuild! Just pull and run.
   dast:
     name: Dynamic Application Security Testing
-    needs: build-and-push
+    needs: [build-and-push]
     runs-on: ubuntu-latest
     steps:
       - name: Run application container
