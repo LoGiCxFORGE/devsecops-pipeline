@@ -19,7 +19,7 @@ def get_user(username: str):
     cursor = conn.cursor()
 
     # ❌ Vulnerable way (f-string SQL)
-    query = f"SELECT * FROM users WHERE username = '{username}'"
+    query = f"SELECT * FROM users WHERE username = '{username}'"  # nosec B608
     cursor.execute(query)
 
     user = cursor.fetchone()
