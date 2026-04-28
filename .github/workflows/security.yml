@@ -57,8 +57,6 @@ jobs:
 
       - name: Setup uv
         uses: astral-sh/setup-uv@v1
-        with:
-          enable-cache: true # [OPTIMIZED] Speeds up repeat runs by caching downloads
 
       - name: Run pre-commit hooks
         uses: pre-commit/action@v3.0.1
@@ -138,13 +136,21 @@ jobs:
     needs: [build-and-push]
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
       - name: Run application container
         run: |
           docker run -d -p 8000:8000 --name app ${{ secrets.DOCKERHUB_USERNAME }}/devsecops-test:latest
-          sleep 15
+          sleep 15 # Give the FastAPI/Uvicorn app time to boot
+
+      - name: Fix workspace permissions for ZAP
+        # [NEW] This allows the ZAP container to write reports to the workspace
+        run: chmod -R 777 ${{ github.workspace }}
 
       - name: Run OWASP ZAP baseline scan
         uses: zaproxy/action-baseline@v0.10.0
         with:
           target: "http://localhost:8000"
+          # 'fail_action: true' means the pipeline stops if vulnerabilities are found
           fail_action: true
