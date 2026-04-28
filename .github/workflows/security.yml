@@ -57,12 +57,11 @@ jobs:
 
       - name: Setup uv
         uses: astral-sh/setup-uv@v1
+        with:
+          enable-cache: true # [OPTIMIZED] Speeds up repeat runs by caching downloads
 
       - name: Run pre-commit hooks
         uses: pre-commit/action@v3.0.1
-
-      - name: Install dependencies
-        run: uv sync --dev
 
 
   # Dependency scanning (SCA) checks dependencies/packages for known vulnerabilities
@@ -77,12 +76,14 @@ jobs:
 
       - name: Setup uv
         uses: astral-sh/setup-uv@v1
+        with:
+          enable-cache: true # [OPTIMIZED] Speeds up repeat runs by caching downloads
 
       - name: Install dependencies
         run: uv sync --dev
 
       - name: Run Safety
-        run: uv run python -m safety check
+        run: uv run --group dev safety check
 
   # Build if code changed (after checks pass)
   build-code:
@@ -98,6 +99,9 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Set up Docker Buildx # [OPTIMIZED] Better caching for Docker layers
+        uses: docker/setup-buildx-action@v3
+      
       - name: Build Docker image
         run: docker build -t devsecops-test .
 
