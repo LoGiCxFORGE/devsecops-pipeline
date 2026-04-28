@@ -55,11 +55,12 @@ jobs:
       - name: Setup uv
         uses: astral-sh/setup-uv@v1
 
+      - name: Run pre-commit hooks
+        uses: pre-commit/action@v3.0.1
+
       - name: Install dependencies
         run: uv sync
 
-      - name: Run pre-commit hooks
-        uses: pre-commit/action@v3.0.1
 
   # Dependency scanning (SCA) checks dependencies/packages for known vulnerabilities
   sca:
