@@ -117,7 +117,7 @@ jobs:
 
   # Container image scanning
   container-scan:
-    name: Container Security Scan
+    name: Container Security Scan & SBOM
     needs: [build-and-push]
     runs-on: ubuntu-latest
     steps:
@@ -126,8 +126,20 @@ jobs:
         with:
           image-ref: ${{ secrets.DOCKERHUB_USERNAME }}/devsecops-test:latest
           severity: HIGH,CRITICAL
-          exit-code: 1
+          exit-code: 1 # Fails the pipeline if bad stuff is found
 
+      - name: Generate SBOM (The Ingredients List)
+        uses: aquasecurity/trivy-action@v0.20.0
+        with:
+          image-ref: ${{ secrets.DOCKERHUB_USERNAME }}/devsecops-test:latest
+          format: 'cyclonedx'
+          output: 'sbom.json'
+
+      - name: Upload SBOM
+        uses: actions/upload-artifact@v4
+        with:
+          name: application-sbom
+          path: sbom.json
 
   # Dynamic security testing (runtime attack simulation)
   # [OPTIMIZED] No rebuild! Just pull and run.
@@ -157,3 +169,10 @@ jobs:
           target: "http://localhost:8000"
           # 'fail_action: true' means the pipeline stops if vulnerabilities are found
           fail_action: true
+
+      - name: Upload Scan Report
+        if: always() # Ensures you get the report even if the scan fails!
+        uses: actions/upload-artifact@v4
+        with:
+          name: zap-baseline-report
+          path: zap_report.html

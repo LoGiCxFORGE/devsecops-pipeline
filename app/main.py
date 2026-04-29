@@ -31,8 +31,11 @@ def get_user(username: str):
     cursor = conn.cursor()
 
     # ❌ Vulnerable way (f-string SQL)
-    query = f"SELECT * FROM users WHERE username = '{username}'"  # nosec B608
-    cursor.execute(query)
+    # query = f"SELECT * FROM users WHERE username = '{username}'"  # nosec B608
+    # cursor.execute(query)
+
+    query = "SELECT * FROM users WHERE username = %s"
+    cursor.execute(query, (username,))  # The database driver handles the safety
 
     user = cursor.fetchone()
     conn.close()
