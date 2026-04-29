@@ -9,17 +9,13 @@ app = FastAPI()
 async def security_headers_middleware(request, call_next):
     response = await call_next(request)
 
-    # 1. Fixes: Non-Storable Content [10049]
-    response.headers["Cache-Control"] = (
-        "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0"
-    )
+    # Standard headers for "Non-Storable Content" [10049]
+    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
     response.headers["Pragma"] = "no-cache"
     response.headers["Expires"] = "0"
 
-    # 2. Fixes: X-Content-Type-Options Header Missing [10021]
+    # Anti-sniffing and CORP
     response.headers["X-Content-Type-Options"] = "nosniff"
-
-    # 3. Fixes: Cross-Origin-Resource-Policy Header Missing [90004]
     response.headers["Cross-Origin-Resource-Policy"] = "same-origin"
 
     return response

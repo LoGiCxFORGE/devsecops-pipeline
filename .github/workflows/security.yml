@@ -169,8 +169,6 @@ jobs:
           target: "http://localhost:8000"
           # 'fail_action: true' means the pipeline stops if vulnerabilities are found
           fail_action: true
-          # This tells ZAP to save an HTML report specifically
-          cmd_options: "-r zap_report.html"
 
       - name: Upload Scan Report
         if: always() # Ensures you get the report even if the scan fails!
