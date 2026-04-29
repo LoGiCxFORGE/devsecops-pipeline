@@ -10,7 +10,7 @@ async def security_headers_middleware(request, call_next):
     response = await call_next(request)
 
     # Standard headers for "Non-Storable Content" [10049]
-    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate, max-age=0"
     response.headers["Pragma"] = "no-cache"
     response.headers["Expires"] = "0"
 
